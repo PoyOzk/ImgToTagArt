@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Image to HTML Tag Art</title>
+  <style>
+    #preview {
+      margin-top: 20px;
+      width: 100%;
+      height: auto;
+      margin-left: auto;
+    margin-right: auto;
+    }
+    body {
+      position: relative;
+      top: 40px;
+  display: grid;
+  place-items: center;
+  height: 60vh;
+}
+textarea {
+  width: 70vh;
+  resize: none;
+  background: #e3e3e1;
+}
+p {
+  width: 75vh;
+}
+input#downscale {
+  position: relative;
+  top: 7px;
+}
+.result {
+  margin-top: 25px;
+  position: relative;
+  left: 2.6vh;
+}
+button[onclick] {
+  border: none;
+  outline: 0.2px solid black;
+  box-shadow: none;
+  position: relative;
+  border-radius: 5px;
+  top: -8.35vh;
+  height: 50%;
+  width: 10vh;
+  left: 2px;
+}
+button[onclick="processImage()"] {
+  background: #418ee8;
+}
+button[onclick="processImage()"]:hover {
+  background: #387bc9;
+}
+button[onclick="processImage()"]:active {
+  background: #2e68ab;
+}
+button[onclick="result.value = ``"] {
+  background: #E84141;
+}
+button[onclick="result.value = ``"]:hover {
+  background: #E84141;
+}
+button[onclick="result.value = ``"]:active {
+  background: #E84141;
+}
+br {
+  margin-bottom: 5px;
+}
+warning {
+  color: #bf0000;
+}
+span.buttons {
+  display: inline-block;
+  width: 1vh;
+  height: 20.6vh;
+  position: relative;
+  left: -9vh;
+  top: 4vh;
+}
+
+  </style>
+</head>
+<body>
+  <h1>Image to HTML Tag Art</h1>
+  <p>This converts images to a weird format which allows it to contain zero quotes. For every row of pixels, a tag is created. Each tag is selected by nth-child selectors and every pixel on that row is applied via a gradient. <br> I used the tag <code>acornym</code> becuase it's very obscure and using something like span tags would break often if you put it on another website because of the nth-child selector, but feel free to edit the code to use whatever you want! <br><warning> Keep in mind that setting the resolution bar too high up makes lots of text (and lag!).</warning></p>
+  <div class="controls"> <input type="file" id="imageInput" accept="image/*">
+  <label for="downscale">Resolution: </label>
+  <input type="range" id="downscale" min="1" max="100" step="1" value="50"> </div>
+  <div class="result">
+    <span class="buttons">
+  <button onclick="processImage()">Process Image</button>
+  <button onclick="result.value = ``">Clear</button>
+    </span>
+  <textarea id="result" rows="10" cols="50" readonly></textarea> </div>
+  <div id="preview"></div>
+
+  <script>
+    function processImage() {
+      const imageInput = document.getElementById("imageInput");
+      const preview = document.getElementById("preview");
+      const result = document.getElementById("result");
+      const downscale = document.getElementById("downscale").value / 100;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          const width = img.width * downscale;
+          const height = img.height * downscale;
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const acronymTags = Array.from({ length: height }, () => "<acronym></acronym>").join("");
+          const styleTags = [];
+
+          for (let y = 0; y < height; y++) {
+            const rowData = ctx.getImageData(0, y, width, 1).data;
+            const hexCodes = Array.from({ length: width }, (v, i) => {
+              const r = rowData[i * 4];
+              const g = rowData[i * 4 + 1];
+              const b = rowData[i * 4 + 2];
+              return rgbToHex(r, g, b);
+            });
+            const gradientStops = getGradientStops(hexCodes);
+            const percentageStep = 100 / gradientStops.length;
+
+            styleTags.push(`acronym:nth-child(${y + 1}) {
+              display: block;
+              width: ${width}px;
+              height: 1px;
+              background: linear-gradient(90deg, ${gradientStops.map((color, i) => `${color} ${i * percentageStep}%, ${color} ${(i + 1) * percentageStep}%`).join(", ")});
+            }`);
+          }
+
+          result.value = acronymTags + "\n\n<style>\n" + styleTags.join("\n") + "\n</style>";
+          preview.innerHTML = acronymTags;
+        };
+        img.src = e.target.result;
+      };
+
+      const file = imageInput.files[0];
+      reader.readAsDataURL(file);
+    }
+
+    function rgbToHex(r, g, b) {
+      return "#" + ((r << 16) | (g << 8) | b).toString(16).padStart(6, "0");
+    }
+
+    function getGradientStops(colors) {
+      const stops = [colors[0]];
+      for (let i = 1; i < colors.length; i++) {
+        stops.push(colors[i]);
+        stops.push(colors[i]);
+      }
+      return stops;
+    }
+  </script>
+</body>
+</html>
